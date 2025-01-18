@@ -184,6 +184,8 @@ def analyze_coupons(coupon_list):
         "threshold_stages": [stage.__dict__ for stage in threshold_stages],
         "free_shipping": free_shipping.__dict__
     }
+
+
 def open_analysis_file():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -193,8 +195,21 @@ def open_analysis_file():
     webbrowser.open(f"http://localhost:8000/index.html")
     httpd.serve_forever()
 
+
+def get_user_id():
+    res = get("https://activity.szlcsc.com/cas/user/info", cookies=cookies).json()
+    if res['code'] != 200:
+        raise ValueError("获取用户ID失败,请检查Cookie")
+    else:
+        user = res["result"]["customerCode"]
+        print(user)
+        with open("user_id.txt", "w") as file:
+            file.write(user)
+
+
 if __name__ == '__main__':
     coupon_use_status_list.remove("all")
+    get_user_id()
     for status in coupon_use_status_list:
         coupons = get_raw_data(status)
         # 保存原始优惠券数据

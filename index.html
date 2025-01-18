@@ -6,98 +6,139 @@
     <title>Coupon Analysis</title>
     <script src="./chart.js"></script>
     <style>
+      :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e74c3c;
+        --background-color: #ecf0f1;
+        --card-color: #ffffff;
+        --text-color: #2c3e50;
+      }
+
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #f4f4f4;
-        color: #333;
+        background-color: var(--background-color);
+        color: var(--text-color);
         line-height: 1.6;
       }
+
       header {
-        background-color: #4caf50;
+        background-color: var(--primary-color);
         color: white;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin: 0;
+        font-weight: 300;
+      }
+
+      nav {
+        background-color: var(--secondary-color);
         padding: 1rem;
         text-align: center;
       }
-      nav {
-        background-color: #333;
-        color: white;
-        padding: 0.5rem;
-        text-align: center;
-      }
+
       nav a {
         color: white;
         margin: 0 1rem;
         text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
       }
+
       nav a:hover {
-        text-decoration: underline;
+        color: var(--accent-color);
+        text-decoration: none;
       }
-      main {
-        padding: 2rem;
+
+      .switch-container {
+        margin: 2rem 0;
       }
-      h1 {
-        text-align: center;
-        margin-bottom: 2rem;
+
+      .switch-btn {
+        padding: 0.8rem 1.5rem;
+        margin: 0 0.5rem;
+        border: none;
+        border-radius: 25px;
+        background: var(--secondary-color);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
+
+      .switch-btn.active {
+        background: var(--accent-color);
+        transform: translateY(-2px);
+      }
+
+      .switch-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
       .chart-container {
         display: grid;
         grid-template-columns: repeat(2, minmax(400px, 1fr));
         gap: 2rem;
         padding: 2rem;
-        max-width: 1400px;
+        max-width: 1600px;
         margin: 0 auto;
       }
+
       .chart-wrapper {
-        background-color: white;
-        border: 1px solid #ddd;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
-        border-radius: 8px;
-        min-height: 350px;
-        position: relative;
+        background-color: var(--card-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        transition: all 0.3s ease;
+        min-height: 400px;
       }
-      .chart-container canvas {
-        max-height: 100%;
-        width: 100% !important;
+
+      .chart-wrapper:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
       }
+
       @media (max-width: 900px) {
         .chart-container {
           grid-template-columns: 1fr;
         }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .switch-btn {
+          margin-bottom: 0.5rem;
+        }
       }
-      footer {
-        display: none;
-      }
-      .switch-container {
-        margin: 1rem 0;
-      }
-      .switch-btn {
+
+      .user-info {
+        background: rgba(255, 255, 255, 0.1);
         padding: 0.5rem 1rem;
-        margin: 0 0.5rem;
-        border: none;
-        border-radius: 4px;
-        background: #333;
-        color: white;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      .switch-btn.active {
-        background: #4caf50;
-      }
-      .switch-btn:hover {
-        opacity: 0.9;
+        border-radius: 20px;
+        margin-top: 1rem;
+        display: inline-block;
+        font-size: 1.1rem;
       }
     </style>
   </head>
   <body>
     <header>
-      <h1>优惠券数据分析</h1>
+      <h1>立创商城历史优惠券分析</h1>
+      <div class="user-info">用户ID: <span id="userId">加载中...</span></div>
       <div class="switch-container">
-        <button class="switch-btn active" data-file="yes">已使用</button>
-        <button class="switch-btn" data-file="no">未使用</button>
-        <button class="switch-btn" data-file="expiration">已过期</button>
+        <button class="switch-btn active" data-file="yes">已使用券</button>
+        <button class="switch-btn" data-file="no">未使用券</button>
+        <button class="switch-btn" data-file="expiration">已过期券</button>
       </div>
     </header>
     <nav>
@@ -127,7 +168,32 @@
       </div>
     </main>
     <script>
+      fetch("user_id.txt")
+        .then((response) => response.text())
+        .then((userId) => {
+          document.getElementById("userId").textContent = userId.trim();
+        })
+        .catch((error) => {
+          console.error("Error loading user ID:", error);
+          document.getElementById("userId").textContent = "未知用户";
+        });
+
       let currentCharts = {};
+
+      const chartColors = {
+        backgroundColor: [
+          "rgba(52, 152, 219, 0.2)",
+          "rgba(231, 76, 60, 0.2)",
+          "rgba(241, 196, 15, 0.2)",
+          "rgba(46, 204, 113, 0.2)",
+        ],
+        borderColor: [
+          "rgba(52, 152, 219, 1)",
+          "rgba(231, 76, 60, 1)",
+          "rgba(241, 196, 15, 1)",
+          "rgba(46, 204, 113, 1)",
+        ],
+      };
 
       function updateCharts(data) {
         // 清除现有图表
@@ -147,8 +213,8 @@
               {
                 label: "品牌优惠券数量",
                 data: brandCounts,
-                backgroundColor: "rgba(75, 192, 192, 0.2)",
-                borderColor: "rgba(75, 192, 192, 1)",
+                backgroundColor: chartColors.backgroundColor[0],
+                borderColor: chartColors.borderColor[0],
                 borderWidth: 1,
               },
             ],
@@ -184,8 +250,8 @@
               {
                 label: "每月使用券数量",
                 data: expiryCounts,
-                backgroundColor: "rgba(153, 102, 255, 0.2)",
-                borderColor: "rgba(153, 102, 255, 1)",
+                backgroundColor: chartColors.backgroundColor[1],
+                borderColor: chartColors.borderColor[1],
                 borderWidth: 1,
               },
             ],
@@ -218,14 +284,14 @@
                 label: "门槛分布",
                 data: thresholdCounts,
                 backgroundColor: [
-                  "rgba(255, 99, 132, 0.2)",
-                  "rgba(54, 162, 235, 0.2)",
-                  "rgba(255, 206, 86, 0.2)",
+                  chartColors.backgroundColor[0],
+                  chartColors.backgroundColor[1],
+                  chartColors.backgroundColor[2],
                 ],
                 borderColor: [
-                  "rgba(255, 99, 132, 1)",
-                  "rgba(54, 162, 235, 1)",
-                  "rgba(255, 206, 86, 1)",
+                  chartColors.borderColor[0],
+                  chartColors.borderColor[1],
+                  chartColors.borderColor[2],
                 ],
                 borderWidth: 1,
               },
@@ -267,10 +333,13 @@
                 label: "优惠券总览",
                 data: summaryData,
                 backgroundColor: [
-                  "rgba(75, 192, 192, 0.2)",
-                  "rgba(255, 159, 64, 0.2)",
+                  chartColors.backgroundColor[0],
+                  chartColors.backgroundColor[3],
                 ],
-                borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 159, 64, 1)"],
+                borderColor: [
+                  chartColors.borderColor[0],
+                  chartColors.borderColor[3],
+                ],
                 borderWidth: 1,
               },
             ],
@@ -317,8 +386,8 @@
                 {
                   label: "每月免邮券数量",
                   data: monthlyCounts,
-                  backgroundColor: "rgba(153, 102, 255, 0.2)",
-                  borderColor: "rgba(153, 102, 255, 1)",
+                  backgroundColor: chartColors.backgroundColor[1],
+                  borderColor: chartColors.borderColor[1],
                   borderWidth: 1,
                 },
               ],
