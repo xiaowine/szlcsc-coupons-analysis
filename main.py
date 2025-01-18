@@ -195,7 +195,6 @@ def open_analysis_file():
 
 if __name__ == '__main__':
     coupon_use_status_list.remove("all")
-    coupon_use_status_list.remove("no")
     for status in coupon_use_status_list:
         coupons = get_raw_data(status)
         # 保存原始优惠券数据
