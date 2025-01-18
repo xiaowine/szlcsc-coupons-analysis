@@ -108,32 +108,35 @@ def analyze_coupons(coupon_list):
     total_discount = sum(float(coupon['discount']) for coupon in coupon_list)
 
     brands = []
-    brand_dict = defaultdict(lambda: {"count": 0, "uuids": []})
+    brand_dict = defaultdict(lambda: {"count": 0, "uuids": [], "total_discount": 0.0})
     for coupon in coupon_list:
         if "品牌推广活动" in coupon['title']:
             brand_name = coupon['name'].split('元')[1].split('品牌')[0]
             brand_dict[brand_name]["count"] += 1
             brand_dict[brand_name]["uuids"].append(coupon['uuid'])
+            brand_dict[brand_name]["total_discount"] += float(coupon['discount'])
     for brand, data in brand_dict.items():
-        brands.append(Brand(brand, data["count"], data["uuids"]))
+        brands.append(Brand(brand, data["count"], data["uuids"], data["total_discount"]))
 
     monthly_expiry_counts = []
-    monthly_expiry_dict = defaultdict(int)
+    monthly_expiry_dict = defaultdict(lambda: {"count": 0, "total_discount": 0.0, "uuids": []})
     expiry_date_pattern = compile(r"有效期：\d{4}-\d{2}-\d{2}-(\d{4}-\d{2}-\d{2})")
     for coupon in coupon_list:
         match = expiry_date_pattern.search(coupon['time'])
         if match:
             expiry_date = match.group(1)
             month = expiry_date[:7]
-            monthly_expiry_dict[month] += 1
-    for month, count in monthly_expiry_dict.items():
-        monthly_expiry_counts.append(MonthlyExpiry(month, count))
+            monthly_expiry_dict[month]["count"] += 1
+            monthly_expiry_dict[month]["total_discount"] += float(coupon['discount'])
+            monthly_expiry_dict[month]["uuids"].append(coupon['uuid'])
+    for month, data in monthly_expiry_dict.items():
+        monthly_expiry_counts.append(MonthlyExpiry(month, data["count"], data["total_discount"], data["uuids"]))
 
     threshold_stages = []
     threshold_stage_dict = {
-        "0-15": 0,
-        "15-30": 0,
-        "30+": 0
+        "0-15": {"count": 0, "total_discount": 0.0, "uuids": []},
+        "15-30": {"count": 0, "total_discount": 0.0, "uuids": []},
+        "30+": {"count": 0, "total_discount": 0.0, "uuids": []}
     }
     threshold_pattern = compile(r"满(\d+(\.\d+)?)元可用")
     for coupon in coupon_list:
@@ -141,13 +144,16 @@ def analyze_coupons(coupon_list):
         if match:
             threshold_value = float(match.group(1))
             if threshold_value <= 15:
-                threshold_stage_dict["0-15"] += 1
+                stage = "0-15"
             elif threshold_value <= 30:
-                threshold_stage_dict["15-30"] += 1
+                stage = "15-30"
             else:
-                threshold_stage_dict["30+"] += 1
-    for stage, count in threshold_stage_dict.items():
-        threshold_stages.append(ThresholdStage(stage, count))
+                stage = "30+"
+            threshold_stage_dict[stage]["count"] += 1
+            threshold_stage_dict[stage]["total_discount"] += float(coupon['discount'])
+            threshold_stage_dict[stage]["uuids"].append(coupon['uuid'])
+    for stage, data in threshold_stage_dict.items():
+        threshold_stages.append(ThresholdStage(stage, data["count"], data["total_discount"], data["uuids"]))
 
     free_shipping_count = 0
     free_shipping_uuids = []
@@ -192,7 +198,7 @@ def open_analysis_file():
     httpd = socketserver.TCPServer(("", 8000), http.server.SimpleHTTPRequestHandler)
 
     # Open the index.html file in the default web browser
-    webbrowser.open(f"http://localhost:8000/index.html")
+    webbrowser.open(f"http://localhost:8000/src/index.html")
     httpd.serve_forever()
 
 
@@ -203,7 +209,7 @@ def get_user_id():
     else:
         user = res["result"]["customerCode"]
         print(user)
-        with open("user_id.txt", "w") as file:
+        with open("data/user_id.txt", "w") as file:
             file.write(user)
 
 
@@ -212,14 +218,16 @@ if __name__ == '__main__':
     get_user_id()
     for status in coupon_use_status_list:
         coupons = get_raw_data(status)
+        if not os.path.exists('data'):
+            os.makedirs('data')
         # 保存原始优惠券数据
-        raw_data_filename = f'coupons_raw_data_{status}.json'
+        raw_data_filename = f'data/coupons_raw_data_{status}.json'
         with open(raw_data_filename, 'w', encoding='utf-8') as f:
             dumpJSON(coupons, f, ensure_ascii=False, indent=4)
 
         # 分析优惠券数据
         analysis = analyze_coupons(coupons)
-        analysis_filename = f'coupons_analysis_{status}.json'
+        analysis_filename = f'data/coupons_analysis_{status}.json'
         with open(analysis_filename, 'w', encoding='utf-8') as f:
             dumpJSON(analysis, f, ensure_ascii=False, indent=4)
         print(f"状态'{status}'的分析结果:", analysis)

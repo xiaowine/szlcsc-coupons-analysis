@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coupon Analysis</title>
+    <script src="./js/chart.js"></script>
+    <script src="./js/app_charts.js"></script>
+    <style>
+      :root {
+        --primary-color: #1a237e;
+        --secondary-color: #303f9f;
+        --accent-color: #ff4081;
+        --background-color: #f5f6fa;
+        --card-color: #ffffff;
+        --text-color: #2c3e50;
+        --gradient-start: #1a237e;
+        --gradient-end: #303f9f;
+        --header-height: 200px;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.6;
+      }
+
+      header {
+        background: linear-gradient(
+          135deg,
+          var(--gradient-start),
+          var(--gradient-end)
+        );
+        color: white;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+        min-height: var(--header-height);
+      }
+
+      header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+          circle at 90% 10%,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 60%
+        );
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 1;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .header-left h1 {
+        font-size: 2.5rem;
+        margin: 0;
+        font-weight: 500;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      nav {
+        background-color: var(--secondary-color);
+        padding: 1rem;
+        text-align: center;
+      }
+
+      nav a {
+        color: white;
+        margin: 0 1rem;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      nav a:hover {
+        color: var(--accent-color);
+        text-decoration: none;
+      }
+
+      .switch-container {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+      }
+
+      .switch-btn {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 50px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .switch-btn.active {
+        background: var(--accent-color);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+      }
+
+      .switch-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .chart-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(400px, 1fr));
+        gap: 2rem;
+        padding: 2rem;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      .chart-wrapper {
+        background-color: var(--card-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        transition: all 0.3s ease;
+        min-height: 400px;
+      }
+
+      .chart-wrapper:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      @media (max-width: 900px) {
+        .chart-container {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .switch-btn {
+          margin-bottom: 0.5rem;
+        }
+      }
+
+      .user-info {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        backdrop-filter: blur(10px);
+        margin-top: 1rem;
+        display: inline-block;
+        font-size: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      @media (max-width: 768px) {
+        .header-content {
+          grid-template-columns: 1fr;
+          text-align: center;
+        }
+
+        .switch-container {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header>
+      <div class="header-content">
+        <div class="header-left">
+          <h1>立创商城历史优惠券分析</h1>
+          <div class="user-info">
+            <i class="fas fa-user-circle"></i>
+            用户 ID: <span id="userId">加载中...</span>
+          </div>
+        </div>
+        <div class="switch-container">
+          <button class="switch-btn active" data-file="yes">
+            已使用优惠券
+          </button>
+          <button class="switch-btn" data-file="no">未使用优惠券</button>
+          <button class="switch-btn" data-file="expiration">
+            已过期优惠券
+          </button>
+        </div>
+      </div>
+    </header>
+    <nav>
+      <a href="#brandChart">品牌分布</a>
+      <a href="#expiryChart">到期时间</a>
+      <a href="#thresholdChart">门槛分布</a>
+      <a href="#summaryChart">总体统计</a>
+      <a href="#freeShippingMonthlyChart">免邮月度统计</a>
+    </nav>
+    <main>
+      <div class="chart-container">
+        <div class="chart-wrapper">
+          <canvas id="brandChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="expiryChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="summaryChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="freeShippingMonthlyChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="thresholdChart"></canvas>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
