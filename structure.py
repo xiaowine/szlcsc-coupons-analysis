@@ -29,7 +29,8 @@ class ThresholdStage:
 
 
 class FreeShipping:
-    def __init__(self, count, uuids, total_discount):
+    def __init__(self, count, uuids, total_discount, monthly_counts):
         self.count = count
         self.uuids = uuids
         self.total_discount = total_discount
+        self.monthly_counts = monthly_counts

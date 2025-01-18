@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coupon Analysis</title>
+    <script src="./chart.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        color: #333;
+        line-height: 1.6;
+      }
+      header {
+        background-color: #4caf50;
+        color: white;
+        padding: 1rem;
+        text-align: center;
+      }
+      nav {
+        background-color: #333;
+        color: white;
+        padding: 0.5rem;
+        text-align: center;
+      }
+      nav a {
+        color: white;
+        margin: 0 1rem;
+        text-decoration: none;
+      }
+      nav a:hover {
+        text-decoration: underline;
+      }
+      main {
+        padding: 2rem;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .chart-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(400px, 1fr));
+        gap: 2rem;
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .chart-wrapper {
+        background-color: white;
+        border: 1px solid #ddd;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        border-radius: 8px;
+        min-height: 350px;
+        position: relative;
+      }
+      .chart-container canvas {
+        max-height: 100%;
+        width: 100% !important;
+      }
+      @media (max-width: 900px) {
+        .chart-container {
+          grid-template-columns: 1fr;
+        }
+      }
+      footer {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>优惠券数据分析</h1>
+    </header>
+    <nav>
+      <a href="#brandChart">品牌分布</a>
+      <a href="#expiryChart">到期时间</a>
+      <a href="#thresholdChart">门槛分布</a>
+      <a href="#summaryChart">总体统计</a>
+      <a href="#freeShippingMonthlyChart">免邮月度统计</a>
+    </nav>
+    <main>
+      <div class="chart-container">
+        <div class="chart-wrapper">
+          <canvas id="brandChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="expiryChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="summaryChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="freeShippingMonthlyChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="thresholdChart"></canvas>
+        </div>
+      </div>
+    </main>
+    <script>
+      // Load the JSON data
+      fetch("coupons_analysis_yes.json")
+        .then((response) => response.json())
+        .then((data) => {
+          // Brand Chart
+          const brandLabels = data.brands.map((brand) => brand.name);
+          const brandCounts = data.brands.map((brand) => brand.count);
+          const brandChartCtx = document
+            .getElementById("brandChart")
+            .getContext("2d");
+          new Chart(brandChartCtx, {
+            type: "bar",
+            data: {
+              labels: brandLabels,
+              datasets: [
+                {
+                  label: "品牌优惠券数量",
+                  data: brandCounts,
+                  backgroundColor: "rgba(75, 192, 192, 0.2)",
+                  borderColor: "rgba(75, 192, 192, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 1,
+                    precision: 0,
+                  },
+                },
+              },
+            },
+          });
+
+          // Monthly Expiry Chart
+          const expiryLabels = data.monthly_expiry_counts.map(
+            (expiry) => expiry.month
+          );
+          const expiryCounts = data.monthly_expiry_counts.map(
+            (expiry) => expiry.count
+          );
+          const expiryChartCtx = document
+            .getElementById("expiryChart")
+            .getContext("2d");
+          new Chart(expiryChartCtx, {
+            type: "line",
+            data: {
+              labels: expiryLabels,
+              datasets: [
+                {
+                  label: "每月使用券数量",
+                  data: expiryCounts,
+                  backgroundColor: "rgba(153, 102, 255, 0.2)",
+                  borderColor: "rgba(153, 102, 255, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true,
+                },
+              },
+            },
+          });
+
+          // Threshold Stage Chart
+          const thresholdLabels = data.threshold_stages.map(
+            (stage) => stage.stage
+          );
+          const thresholdCounts = data.threshold_stages.map(
+            (stage) => stage.count
+          );
+          const thresholdChartCtx = document
+            .getElementById("thresholdChart")
+            .getContext("2d");
+          new Chart(thresholdChartCtx, {
+            type: "pie",
+            data: {
+              labels: thresholdLabels,
+              datasets: [
+                {
+                  label: "门槛分布",
+                  data: thresholdCounts,
+                  backgroundColor: [
+                    "rgba(255, 99, 132, 0.2)",
+                    "rgba(54, 162, 235, 0.2)",
+                    "rgba(255, 206, 86, 0.2)",
+                  ],
+                  borderColor: [
+                    "rgba(255, 99, 132, 1)",
+                    "rgba(54, 162, 235, 1)",
+                    "rgba(255, 206, 86, 1)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: "优惠券门槛分布",
+                  padding: {
+                    top: 10,
+                    bottom: 30,
+                  },
+                },
+                legend: {
+                  position: "bottom",
+                  labels: {
+                    padding: 20,
+                  },
+                },
+              },
+            },
+          });
+
+          // Summary Chart (替换原来的Free Shipping Chart)
+          const summaryData = [data.total_coupons, data.free_shipping.count];
+          const summaryChartCtx = document
+            .getElementById("summaryChart")
+            .getContext("2d");
+          new Chart(summaryChartCtx, {
+            type: "bar",
+            data: {
+              labels: ["总优惠券数", "免邮优惠券"],
+              datasets: [
+                {
+                  label: "优惠券总览",
+                  data: summaryData,
+                  backgroundColor: [
+                    "rgba(75, 192, 192, 0.2)",
+                    "rgba(255, 159, 64, 0.2)",
+                  ],
+                  borderColor: [
+                    "rgba(75, 192, 192, 1)",
+                    "rgba(255, 159, 64, 1)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                title: {
+                  display: true,
+                  text: `总优惠金额: ¥${data.total_discount}`,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return `${context.label}: ${context.raw}`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 1,
+                  },
+                },
+              },
+            },
+          });
+
+          // Free Shipping Monthly Chart - 新增
+          const monthlyLabels = Object.keys(data.free_shipping.monthly_counts);
+          const monthlyCounts = Object.values(
+            data.free_shipping.monthly_counts
+          );
+          const freeShippingMonthlyChartCtx = document
+            .getElementById("freeShippingMonthlyChart")
+            .getContext("2d");
+          new Chart(freeShippingMonthlyChartCtx, {
+            type: "bar",
+            data: {
+              labels: monthlyLabels,
+              datasets: [
+                {
+                  label: "每月免邮券数量",
+                  data: monthlyCounts,
+                  backgroundColor: "rgba(153, 102, 255, 0.2)",
+                  borderColor: "rgba(153, 102, 255, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 1,
+                  },
+                },
+              },
+            },
+          });
+        });
+    </script>
+  </body>
+</html>

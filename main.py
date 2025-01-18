@@ -1,3 +1,7 @@
+import http.server
+import os
+import socketserver
+import webbrowser
 from uuid import uuid4
 from sys import argv
 from hjson import dumpJSON
@@ -148,12 +152,19 @@ def analyze_coupons(coupon_list):
     free_shipping_count = 0
     free_shipping_uuids = []
     free_shipping_total_discount = 0.0
+    free_shipping_monthly_counts = defaultdict(int)
     for coupon in coupon_list:
         if "免邮活动" in coupon['title']:
             free_shipping_count += 1
             free_shipping_uuids.append(coupon['uuid'])
             free_shipping_total_discount += float(coupon['discount'])
-    free_shipping = FreeShipping(free_shipping_count, free_shipping_uuids, free_shipping_total_discount)
+            match = expiry_date_pattern.search(coupon['time'])
+            if match:
+                expiry_date = match.group(1)
+                month = expiry_date[:7]
+                free_shipping_monthly_counts[month] += 1
+    free_shipping = FreeShipping(free_shipping_count, free_shipping_uuids, free_shipping_total_discount,
+                                 dict(free_shipping_monthly_counts))
 
     print(f"优惠券总数: {total_coupons}")
     print(f"总折扣金额: {total_discount}元")
@@ -163,6 +174,7 @@ def analyze_coupons(coupon_list):
     print(f"免邮活动数量: {free_shipping.count}")
     print(f"免邮活动UUIDs: {free_shipping.uuids}")
     print(f"免邮活动总折扣: {free_shipping.total_discount}元")
+    print("免邮活动每月统计:", dict(free_shipping_monthly_counts))
 
     return {
         "total_coupons": total_coupons,
@@ -172,7 +184,14 @@ def analyze_coupons(coupon_list):
         "threshold_stages": [stage.__dict__ for stage in threshold_stages],
         "free_shipping": free_shipping.__dict__
     }
+def open_analysis_file():
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+    httpd = socketserver.TCPServer(("", 8000), http.server.SimpleHTTPRequestHandler)
+
+    # Open the index.html file in the default web browser
+    webbrowser.open(f"http://localhost:8000/index.html")
+    httpd.serve_forever()
 
 if __name__ == '__main__':
     coupon_use_status_list.remove("all")
@@ -191,3 +210,5 @@ if __name__ == '__main__':
             dumpJSON(analysis, f, ensure_ascii=False, indent=4)
         print(f"状态'{status}'的分析结果:", analysis)
         print("~" * 50)
+
+    open_analysis_file()
